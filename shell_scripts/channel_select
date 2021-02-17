@@ -1,5 +1,13 @@
 #!/bin/bash
 
+###################################################################
+##             (c) 2021 Simon Cahill and Contributors            ##
+###################################################################
+##                                                               ##
+##  This software is licensed under the Apache License 2.0       ##
+##  https://www.apache.org/licenses/LICENSE-2.0                  ##
+###################################################################
+
 CHANNELS=(
     "5"
     "6"
