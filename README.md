@@ -33,3 +33,20 @@ If the --help|-h arg is passed, the script will print the help text and exit.
 # Print help menu
 ./channel_select --help
 ```
+
+# C++ Application
+
+Provided with this repository is a simple sample application written in C++, providing the same functionality as the Bash script.
+
+## Building
+
+```
+g++ -std=c++17 -o channel_select cpp/channel_select.cpp
+```
+
+## Usage
+
+The C++ example provides the same features/functionality and arguments as the Bash script.<br >
+They are virtually 1:1 ports of each other.
+
+
