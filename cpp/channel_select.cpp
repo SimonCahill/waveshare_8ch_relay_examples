@@ -38,7 +38,7 @@ static bool g_state = false; //!< The desired state for the channel (on/off)
 
 /**
  * @brief A simple array representing a map to the channels on the relay board, corresponding to
- * the GPIO pings.
+ * the GPIO pins.
  * 
  * E.g.: CHANNELS[0] = channel 1 = GPIO5
  */
