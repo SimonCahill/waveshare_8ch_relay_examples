@@ -1,3 +1,10 @@
 [submodule "doxygen-awesome-css"]
 	path = doxygen-awesome-css
 	url = https://github.com/jothepro/doxygen-awesome-css.git
+[submodule "cpp/submodules/fmt"]
+	path = cpp/submodules/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "cpp/submodules/libgpiod"]
+	path = cpp/submodules/libgpiod
+	url = https://github.com/brgl/libgpiod.git
+	branch = v2.1.x
