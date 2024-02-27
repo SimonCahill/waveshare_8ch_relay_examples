@@ -101,6 +101,27 @@ int32_t main(int32_t argc, char** argv) {
         return 0;
     }
 
+    for (const auto& [channel, state] : g_channelOptions) {
+        if (state) {
+            switch (*state) {
+                case StateModifier::DISABLE:
+                    setChannel(channel, *state);
+                    break;
+                case StateModifier::ENABLE:
+                    setChannel(channel, *state);
+                    break;
+                default:
+                    fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+                    break;
+            }
+        } else if (g_stateModifier == StateModifier::READ) {
+            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+            continue;
+        } else {
+            setChannel(channel, g_stateModifier);
+        }
+    }
+
     return 0;
 }
 
@@ -172,6 +193,10 @@ int32_t parseArgs(int32_t argc, char** argv) {
 
 bool getChannel(const int32_t channel) {
     auto gpioChip = gpiod::chip(string{GPIO_CHIP});
+    auto lineSettings = gpiod::line_settings{};
+    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
+
+    return static_cast<bool>(line.get_value(line.offsets()[0]));
 }
 
 optsm_t stateModifierFromString(const string& optArg) {
@@ -237,4 +262,16 @@ Options:
 
 void printVersion() {
     fmt::print(R"({0:s} v{1:s} - A simple application for controlling GPIO pins on modern Linux OSs on RasPi)", APP_NAME, APP_VERS);
+}
+
+void setChannel(const int32_t channel, const StateModifier newState) {
+    const auto gpioLineName = fmt::format("GPIO{0:d}", channel);
+
+    auto gpioChip = gpiod::chip(string{GPIO_CHIP});
+    auto lineSettings = gpiod::line_settings{};
+    lineSettings.set_direction(gpiod::line::direction::OUTPUT);
+    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+
+    fmt::println("Attempting to set GPIO{0:d} {1:s}", channel, newState == StateModifier::DISABLE ? "OFF" : "ON");
+    line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
 }

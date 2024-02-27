@@ -40,6 +40,7 @@ target_include_directories(channel_select PRIVATE
 target_link_libraries(
     channel_select
 
-    gpiod
+    gpiod::shared
+    gpiodcxx::shared
     fmt
 )

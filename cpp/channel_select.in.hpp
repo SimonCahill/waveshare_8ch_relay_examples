@@ -14,6 +14,6 @@
 constexpr const char* APP_NAME = "@PROJECT_NAME@";
 constexpr const char* APP_VERS = "@PROJECT_VERSION@";
 
-constexpr const char* GPIO_CHIP = "gpiochip0"; //!< This is the chip required for controlling the relay board
+constexpr const char* GPIO_CHIP = "/dev/gpiochip0"; //!< This is the chip required for controlling the relay board
 
 #endif // CHANNEL_SELECT_HPP
