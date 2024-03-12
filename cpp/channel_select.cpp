@@ -5,36 +5,66 @@
  *               contributors               *
  ********************************************/
 
+#ifndef GPIOD_API
+#define GPIOD_API
+#endif
+
 //////////////////////////////////
 //        System Includes       //
 //////////////////////////////////
+// STL
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <optional>
 #include <regex>
 #include <string>
 
+// libc
+#include <getopt.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+// fmt
+#include <fmt/format.h>
+
+// gpiod
+#include <gpiod.h>
+#include <gpiod.hpp>
+
+//////////////////////////////////
+//        Local  Includes       //
+//////////////////////////////////
+#include "channel_select.hpp"
+
 //////////////////////////////////
 //            Usings            //
 //////////////////////////////////
+using std::array;
 using std::cerr;
 using std::cout;
 using std::endl;
+using std::map;
+using std::optional;
 using std::regex;
 using std::regex_search;
 using std::string;
+using std::string_view;
 using std::tolower;
 using std::transform;
 
+enum class StateModifier { ENABLE, DISABLE, READ };
+
+static bool                                     g_readAll{false};
+static map<int32_t, optional<StateModifier>>    g_channelOptions{};
+static StateModifier                            g_stateModifier{StateModifier::READ};
+
 //////////////////////////////////
-//        Global Variables      //
+//       STATIC CONSTEXPR       //
 //////////////////////////////////
-static uint32_t g_channel = 0; //!< The selected channel to enable and/or toggle
-static bool g_state = false; //!< The desired state for the channel (on/off)
 
 /**
  * @brief A simple array representing a map to the channels on the relay board, corresponding to
@@ -42,142 +72,206 @@ static bool g_state = false; //!< The desired state for the channel (on/off)
  * 
  * E.g.: CHANNELS[0] = channel 1 = GPIO5
  */
-static const uint32_t CHANNELS[8] {
+static constexpr array<uint32_t, 8> CHANNELS {
     5, 6, 13, 16, 19, 20, 21, 26
 };
 
-/**
- * @brief Simple string formatter template function.
- * 
- * @tparam Args The arguments to be formatted into the string
- * 
- * @param format The C-style format string
- * @param args Varargs list of arguments
- * 
- * @return string The formatted string.
- */
-template<typename... Args>
-string formatString(const string& format, Args... args)  {
-    auto stringSize = snprintf(NULL, 0, format.c_str(), args...) + 1; // +1 for \0
-    std::unique_ptr<char[]> buffer(new char[stringSize]);
-
-    snprintf(buffer.get(), stringSize, format.c_str(), args...);
-
-    return string(buffer.get(), buffer.get() + stringSize - 1); // std::string handles termination for us.
-}
-
 //////////////////////////////////
-//      Function Prototypes     //
+//     FUNCTION PROTOTYPES      //
 //////////////////////////////////
-bool directoryExists(string dirPath); //!< Whether or not a given directory exists or not
-bool parseArgs(int32_t argC, char** argV); //!< Parses command-line arguments passed to the application
+using optsm_t = optional<StateModifier>;
 
-void enableGpio(); //!< Enables a given GPIO pin
-void setGpio(); //!< Sets a GPIO pin on/off, depending on the desired state
-void showHelp(); //!< Prints the help text
+optsm_t     stateModifierFromString(const string& optArg); //!< Converts an optarg value to a boolean
+int32_t     parseArgs(int32_t argc, char** argv); //!< Parses arguments passed to the application
 
-int main(int32_t argC, char** argV) {
+bool        getChannel(const int32_t channelId); //!< Gets the state of a given channel
+void        listChannels(); //!< Lists all channels available with their state.
+void        setChannel(const int32_t channelId, const StateModifier newState); //!< Sets the state of a given channel
 
-    if (argC <= 2) {
-        showHelp();
-        return -1;
+void        printHelp(); //!< Prints the help text for the application
+void        printVersion(); //!< Prints the version information for the application
+
+int32_t main(int32_t argc, char** argv) {
+    if (const auto retVal = parseArgs(argc, argv); retVal > 0) {
+        return retVal - 1; // Return an error code or null, depending on the arguments
     }
 
-    if (!parseArgs(argC, argV)) return -1;
+    if (g_readAll) {
+        listChannels();
+        return 0;
+    }
+
+    for (const auto& [channel, state] : g_channelOptions) {
+        if (state) {
+            switch (*state) {
+                case StateModifier::DISABLE:
+                    setChannel(channel, *state);
+                    break;
+                case StateModifier::ENABLE:
+                    setChannel(channel, *state);
+                    break;
+                default:
+                    fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+                    break;
+            }
+        } else if (g_stateModifier == StateModifier::READ) {
+            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+            continue;
+        } else {
+            setChannel(channel, g_stateModifier);
+        }
+    }
 
     return 0;
 }
 
 /**
- * @brief Determines whether or not a given directory exists.
+ * @brief Parses the arguments/options passed to this application using getopt.
  * 
- * @param dirPath The path to check.
+ * @param argc The amount of arguments passed
+ * @param argv An array containing the arguments/options
  * 
- * @return true If the directory exists.
- * @return false Otherwise.
+ * @return int32_t 0 if application shall continue, otherwise app return code + 1.
  */
-bool directoryExists(string dirPath) {
-    struct stat _stat;
-    if (stat(dirPath.c_str(), &_stat) == 0 && S_ISDIR(_stat.st_mode)) {
-        return true;
-    }
-    return false;
-}
+int32_t parseArgs(int32_t argc, char** argv) {
+    constexpr option APP_OPTIONS[] = {
+        { "help",       no_argument,        nullptr,    'h' },
+        { "version",    no_argument,        nullptr,    'v' },
 
-/**
- * @brief Parses arguments passed to the application and sets the required parameters accordingly.
- * 
- * @param argC The total arg count
- * @param argV A pointer-pointer to the arg list
- * 
- * @return true If the application should stay alive
- * @return false Otherwise
- */
-bool parseArgs(int32_t argC, char** argV) {
-    const static regex CHANNEL_PATTERN(R"((ch)?[0-8])");
-    const static regex STATE_PATTERN(R"(on|off|true|false)");
+        // channels
+        { "channel1",   optional_argument,  nullptr,    '1' },
+        { "channel2",   optional_argument,  nullptr,    '2' },
+        { "channel3",   optional_argument,  nullptr,    '3' },
+        { "channel4",   optional_argument,  nullptr,    '4' },
+        { "channel5",   optional_argument,  nullptr,    '5' },
+        { "channel6",   optional_argument,  nullptr,    '6' },
+        { "channel7",   optional_argument,  nullptr,    '7' },
+        { "channel8",   optional_argument,  nullptr,    '8' },
 
-    for (int32_t i = 0; i < argC; i++) {
-        string arg = argV[i];
+        // modifiers
+        { "enable",     no_argument,        nullptr,    'e' },
+        { "disable",    no_argument,        nullptr,    'd' },
+        { "read-state", no_argument,        nullptr,    'r' },
 
-        // Convert arg to lower
-        transform(arg.begin(), arg.end(), arg.begin(), [&](const auto c) { return tolower(c); });
+        // other operations
+        { "list-all",   no_argument,        nullptr,    'L' }
+    };
+    constexpr const char* APP_SHORTOPTS = R"(hv1::2::3::4::5::6::7::8::edrL)";
 
-        if (regex_search(arg, CHANNEL_PATTERN)) {
-            g_channel = std::stoi(arg.substr(arg.size() - 1, 1));
-        } else if (regex_search(arg, STATE_PATTERN)) {
-            g_state = (arg == "on" || arg == "true");
+    int32_t optChar = -1;
+
+    while ((optChar = getopt_long(argc, argv, APP_SHORTOPTS, APP_OPTIONS, nullptr)) != -1) {
+        if (optChar >= 49 && optChar <= 56) {
+            // Handle channel inputs
+            g_channelOptions.try_emplace(CHANNELS[optChar - 49], stateModifierFromString(optarg == nullptr ? string{} : optarg));
         } else {
-            showHelp();
-            return false;
+            switch (optChar) {
+                case 'h':
+                    printHelp();
+                    return 1;
+                case 'v':
+                    printVersion();
+                    return 1;
+                case 'e':
+                    g_stateModifier = StateModifier::ENABLE;
+                    break;
+                case 'd':
+                    g_stateModifier = StateModifier::DISABLE;
+                    break;
+                case 'r':
+                    g_stateModifier = StateModifier::READ;
+                    break;
+                case 'L':
+                    g_readAll = true;
+                    break;
+            }
         }
     }
 
-    return true;
+    return 0;
 }
 
-/**
- * @brief Enables use of the desired GPIO pin
- */
-void enableGpio() {
-    static const string GPIO_DIR_PATH = "/sys/class/gpio/gpio";
+bool getChannel(const int32_t channel) {
+    auto gpioChip = gpiod::chip(string{GPIO_CHIP});
+    auto lineSettings = gpiod::line_settings{};
+    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
 
-    const auto gpioPath = formatString("%s%d", GPIO_DIR_PATH.c_str(), g_channel);
+    return static_cast<bool>(line.get_value(line.offsets()[0]));
+}
 
-    if (directoryExists(gpioPath)) return;
+optsm_t stateModifierFromString(const string& optArg) {
+    constexpr const char* ENABLE_OPT = "e";
+    constexpr const char* DISABLE_OPT = "d";
+    constexpr const char* READ_OPT = "r";
 
-    // Make sure Linux exports the pin
-    {
-        std::ofstream fileStream("/sys/class/gpio/export", std::ios::trunc);
-        fileStream << g_channel << endl;
+    if (optArg.length() == 0) { return std::nullopt; }
+
+    if (optArg == ENABLE_OPT) {
+        return StateModifier::ENABLE;
+    } else if (optArg == DISABLE_OPT) {
+        return StateModifier::DISABLE;
+    } else if (optArg == READ_OPT) {
+        return StateModifier::READ;
     }
+    
+    return std::nullopt;
+}
 
-    // Set the GPIO direction
-    {
-        std::ofstream fileStream(formatString("%s/direction", gpioPath.c_str()), std::ios::trunc);
-        fileStream << "out" << endl;
+void listChannels() {
+    size_t channelCounter = 1;
+
+    for (const auto channel : CHANNELS) {
+        fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channelCounter++, channel, getChannel(channel) ? "OFF" : "ON");
     }
 }
 
-/**
- * @brief Sets the desired GPIO pin either on or off, depending on cmd-args.
- */
-void setGpio() {
-    static const string GPIO_DIR_PATH = "/sys/class/gpio/gpio";
+void printHelp() {
+    fmt::print(R"(
+{0:s} v{1:s} - A simple application for controlling GPIO pins on modern Linux OSs on RasPi
 
-    const auto gpioPath = formatString("%s%d/value", GPIO_DIR_PATH.c_str(), g_channel);
-
-    std::ofstream fileStream(gpioPath, std::ios::trunc);
-    fileStream << static_cast<int32_t>(g_state) << endl;
-}
-
-/**
- * @brief Prints the help text to the console.
- */
-void showHelp() {
-    cout << R"(
 Usage:
-    channel_select [ch]0-8 on/off/true/false
-    channel_select --help
-    )" << endl;
+    {0:s} -h
+    {0:s} -e -123       # enable channels 1, 2, and 3
+    {0:s} -d -528 -7=r  # disable channels 5, 2, and 8 and read the state of channel 7
+    {0:s} -L            # read the states of all channels
+
+Troubleshooting:
+    Permission denied? Is your user in the gpio group? # usermod -aG gpio <myuser>
+    Library not found? Try installing lgpiod
+
+Options:
+    Channel selection:
+     --channel1,    -1[=edr]      Channel 1
+     --channel2,    -2[=edr]      Look, it's the same up until -8
+     ...
+     --channel8,    -8[=edr]      I'm sure it's self-explanatory at this point
+
+    Channel options:
+     --enable,      -e              Enable channel(s)
+     --disable,     -d              Disable channel(s)
+     --read,        -r              Read the channel state
+
+    General options:
+     --list-all,    -L              List all channels and their current state
+
+     --help,        -h              Displays this text and exits
+     --version,     -v              Displays the version information and exits
+)", APP_NAME, APP_VERS);
+
+}
+
+void printVersion() {
+    fmt::print(R"({0:s} v{1:s} - A simple application for controlling GPIO pins on modern Linux OSs on RasPi)", APP_NAME, APP_VERS);
+}
+
+void setChannel(const int32_t channel, const StateModifier newState) {
+    const auto gpioLineName = fmt::format("GPIO{0:d}", channel);
+
+    auto gpioChip = gpiod::chip(string{GPIO_CHIP});
+    auto lineSettings = gpiod::line_settings{};
+    lineSettings.set_direction(gpiod::line::direction::OUTPUT);
+    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+
+    fmt::println("Attempting to set GPIO{0:d} {1:s}", channel, newState == StateModifier::DISABLE ? "OFF" : "ON");
+    line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
 }
