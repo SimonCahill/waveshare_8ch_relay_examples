@@ -25,8 +25,16 @@ CHANNEL_STATE=0
 print_help() {
     cat <<- EOH
     Usage:
-        $0 <[ch/CH]1-8> <on/off/true/false/ON/OFF>
+        $0 <-1-8> <-e/d>
+        $0 <--ch1-8> <--enable/--disable>
         $0 --help # prints this message and exits
+
+    Detailled usage:
+        This script supports getopt-like arguments.
+        You may chain short options like the channel selections, to select more than one channel.
+
+        To select and enable channels 1, 4, 7, and 8 you can call:
+        $0 -1478e
 EOH
 }
 
@@ -35,75 +43,142 @@ if [[ $# -lt 2 ]]; then
     exit
 fi
 
-for i in $@; do
-    case $i in
-        "ch1"|"CH1"|"1")
-            echo "Selected channel 1"
-            eval SELECTED_CHANNEL=${CHANNELS[0]}
-        ;;
-        "ch2"|"CH2"|"2")
-            echo "Selected channel 2"
-            eval SELECTED_CHANNEL=${CHANNELS[1]}
-        ;;
-        "ch3"|"CH3"|"3")
-            echo "Selected channel 3"
-            eval SELECTED_CHANNEL=${CHANNELS[2]}
-        ;;
-        "ch4"|"CH4"|"4")
-            echo "Selected channel 4"
-            eval SELECTED_CHANNEL=${CHANNELS[3]}
-        ;;
-        "ch5"|"CH5"|"5")
-            echo "Selected channel 5"
-            eval SELECTED_CHANNEL=${CHANNELS[4]}
-        ;;
-        "ch6"|"CH6"|"6")
-            echo "Selected channel 6"
-            eval SELECTED_CHANNEL=${CHANNELS[5]}
-        ;;
-        "ch7"|"CH7"|"7")
-            echo "Selected channel 7"
-            eval SELECTED_CHANNEL=${CHANNELS[6]}
-        ;;
-        "ch8"|"CH8"|"8")
-            echo "Selected channel 8"
-            eval SELECTED_CHANNEL=${CHANNELS[7]}
-        ;;
-        "--help"|"-h")
-            print_help $0
-            exit
-        ;;
-        "ON"|"on"|"true")
-            echo "Channel state = on"
-            eval CHANNEL_STATE=0
-        ;;
-        "OFF"|"off"|"false")
-            echo "Channel state = off"
-            eval CHANNEL_STATE=1
-        ;;
-        *)
+SHORT_OPTS="h13245678edEr"
+LONG_OPTS="help,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch7,ch8,enable,disable,export-only,read-state"
+
+readonly SHORT_OPTS
+readonly LONG_OPTS
+
+REQUESTED_CHANNELS=()
+
+#=======================================
+# Handle command-line arguments (getopt)
+#=======================================
+TEMP_OPT=$(getopt -o "$SHORT_OPTS" --long "$LONG_OPTS" -n "$(basename "$0")" -- "$@")
+error=$?
+
+eval set -- "$TEMP_OPT"
+unset TEMP_OPT
+
+if [[ $error -ne 0 ]]; then
+    echo "Invalid arguments!" >&2
+    print_help
+    exit $error
+fi
+
+while true; do
+    case "$1" in
+        "-h"|"--help")
             print_help
-            exit
-        ;;
+            exit 0
+            ;;
+        
+        # Actual channel selection
+        "-1"|"--ch1")
+            REQUESTED_CHANNELS+=("${CHANNELS[0]}")
+            shift
+            ;;
+        "-2"|"--ch2")
+            REQUESTED_CHANNELS+=("${CHANNELS[1]}")
+            shift
+            ;;
+        "-3"|"--ch3")
+            REQUESTED_CHANNELS+=("${CHANNELS[2]}")
+            shift
+            ;;
+        "-4"|"--ch4")
+            REQUESTED_CHANNELS+=("${CHANNELS[3]}")
+            shift
+            ;;
+        "-5"|"--ch5")
+            REQUESTED_CHANNELS+=("${CHANNELS[4]}")
+            shift
+            ;;
+        "-6"|"--ch6")
+            REQUESTED_CHANNELS+=("${CHANNELS[5]}")
+            shift
+            ;;
+        "-7"|"--ch7")
+            REQUESTED_CHANNELS+=("${CHANNELS[6]}")
+            shift
+            ;;
+        "-8"|"--ch8")
+            REQUESTED_CHANNELS+=("${CHANNELS[7]}")
+            shift
+            ;;
+
+        # Modifier
+        "-e"|"--enable")
+            CHANNEL_STATE=0
+            shift
+            ;;
+        "-d"|"--disable")
+            CHANNEL_STATE=1
+            shift
+            ;;
+
+        # More options
+        "-E"|"--export-only")
+            EXPORT_ONLY=1
+            shift
+            ;;
+        "-r"|"--read-state")
+            READ_STATE=1
+            shift
+            ;;
+
+        "--")
+            shift
+            break
+            ;;
     esac
 done
+
+readonly REQUESTED_CHANNELS
+readonly CHANNEL_STATE
+readonly EXPORT_ONLY
 
 ############################
 ##  Do actual work here
 ############################
 
-# Detect if GPIO pin is already exported
-if [[ ! -d "/sys/class/gpio/gpio$SELECTED_CHANNEL" ]]; then
-    echo "$SELECTED_CHANNEL" > "/sys/class/gpio/export"
-#else
-    #&2 < echo "Channel $SELECTED_CHANNEL is already exported!"
-    #exit
-fi
+###
+# Converts an integer to a human-readable state
+#
+# $1 => The state
+###
+human_readable_state() {
+    if [[ $1 -ge 1 ]]; then
+        echo "OFF"
+    else
+        echo "ON"
+    fi
+}
 
-# Now dump value to GPIO
-echo "out" > "/sys/class/gpio/gpio$SELECTED_CHANNEL/direction"
-echo "$CHANNEL_STATE" > "/sys/class/gpio/gpio$SELECTED_CHANNEL/value"
+printf "%d channels have been selected.\n" ${#REQUESTED_CHANNELS[@]}
 
-echo "GPIO pin $SELECTED_CHANNEL set to $CHANNEL_STATE"
+for selected_channel in "${REQUESTED_CHANNELS[@]}"; do
+    # Detect if GPIO pin is already exported
+    if [[ ! -d "/sys/class/gpio/gpio$selected_channel" ]]; then
+        echo "Exporting channel $selected_channel"
+        printf "%s" "$selected_channel" > "/sys/class/gpio/export"
+    fi
 
+    if [[ $READ_STATE -ge 1 ]]; then
+        printf "Channel %d has direction %s.\n\t-> Current state %s\n\n" "$selected_channel" \
+            "$(cat "/sys/class/gpio/gpio$selected_channel/direction")" \
+            "$(human_readable_state "$(cat "/sys/class/gpio/gpio$selected_channel/value")")"
+        continue;
+    fi
 
+    if [[ $EXPORT_ONLY -ge 1 ]]; then
+        continue;
+    fi
+
+    # Now dump value to GPIO
+    echo "out" > "/sys/class/gpio/gpio$selected_channel/direction"
+    echo "$CHANNEL_STATE" > "/sys/class/gpio/gpio$selected_channel/value"
+
+    echo "GPIO pin $selected_channel set to $CHANNEL_STATE"
+    
+done
