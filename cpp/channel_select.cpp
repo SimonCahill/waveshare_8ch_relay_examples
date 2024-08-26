@@ -84,7 +84,7 @@ using optsm_t = optional<StateModifier>;
 optsm_t     stateModifierFromString(const string& optArg); //!< Converts an optarg value to a boolean
 int32_t     parseArgs(int32_t argc, char** argv); //!< Parses arguments passed to the application
 
-bool        getChannel(const int32_t channelId); //!< Gets the state of a given channel
+bool        getChannelState(const int32_t channelId); //!< Gets the state of a given channel
 void        listChannels(); //!< Lists all channels available with their state.
 void        setChannel(const int32_t channelId, const StateModifier newState); //!< Sets the state of a given channel
 
@@ -111,11 +111,11 @@ int32_t main(int32_t argc, char** argv) {
                     setChannel(channel, *state);
                     break;
                 default:
-                    fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+                    fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
                     break;
             }
         } else if (g_stateModifier == StateModifier::READ) {
-            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel, CHANNELS[channel], getChannel(CHANNELS[channel]) ? "OFF" : "ON");
+            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
             continue;
         } else {
             setChannel(channel, g_stateModifier);
@@ -135,35 +135,35 @@ int32_t main(int32_t argc, char** argv) {
  */
 int32_t parseArgs(int32_t argc, char** argv) {
     constexpr option APP_OPTIONS[] = {
-        { "help",       no_argument,        nullptr,    'h' },
-        { "version",    no_argument,        nullptr,    'v' },
+        { "help",       no_argument,    nullptr,    'h' },
+        { "version",    no_argument,    nullptr,    'v' },
 
         // channels
-        { "channel1",   optional_argument,  nullptr,    '1' },
-        { "channel2",   optional_argument,  nullptr,    '2' },
-        { "channel3",   optional_argument,  nullptr,    '3' },
-        { "channel4",   optional_argument,  nullptr,    '4' },
-        { "channel5",   optional_argument,  nullptr,    '5' },
-        { "channel6",   optional_argument,  nullptr,    '6' },
-        { "channel7",   optional_argument,  nullptr,    '7' },
-        { "channel8",   optional_argument,  nullptr,    '8' },
+        { "channel1",   no_argument,    nullptr,    '1' },
+        { "channel2",   no_argument,    nullptr,    '2' },
+        { "channel3",   no_argument,    nullptr,    '3' },
+        { "channel4",   no_argument,    nullptr,    '4' },
+        { "channel5",   no_argument,    nullptr,    '5' },
+        { "channel6",   no_argument,    nullptr,    '6' },
+        { "channel7",   no_argument,    nullptr,    '7' },
+        { "channel8",   no_argument,    nullptr,    '8' },
 
         // modifiers
-        { "enable",     no_argument,        nullptr,    'e' },
-        { "disable",    no_argument,        nullptr,    'd' },
-        { "read-state", no_argument,        nullptr,    'r' },
+        { "enable",     no_argument,    nullptr,    'e' },
+        { "disable",    no_argument,    nullptr,    'd' },
+        { "read-state", no_argument,    nullptr,    'r' },
 
         // other operations
-        { "list-all",   no_argument,        nullptr,    'L' }
+        { "list-all",   no_argument,    nullptr,    'L' }
     };
-    constexpr const char* APP_SHORTOPTS = R"(hv1::2::3::4::5::6::7::8::edrL)";
+    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrL)";
 
     int32_t optChar = -1;
 
     while ((optChar = getopt_long(argc, argv, APP_SHORTOPTS, APP_OPTIONS, nullptr)) != -1) {
         if (optChar >= 49 && optChar <= 56) {
             // Handle channel inputs
-            g_channelOptions.try_emplace(CHANNELS[optChar - 49], stateModifierFromString(optarg == nullptr ? string{} : optarg));
+            g_channelOptions.try_emplace(optChar - 49, std::nullopt);
         } else {
             switch (optChar) {
                 case 'h':
@@ -191,7 +191,7 @@ int32_t parseArgs(int32_t argc, char** argv) {
     return 0;
 }
 
-bool getChannel(const int32_t channel) {
+bool getChannelState(const int32_t channel) {
     auto gpioChip = gpiod::chip(string{GPIO_CHIP});
     auto lineSettings = gpiod::line_settings{};
     auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
@@ -221,7 +221,7 @@ void listChannels() {
     size_t channelCounter = 1;
 
     for (const auto channel : CHANNELS) {
-        fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channelCounter++, channel, getChannel(channel) ? "OFF" : "ON");
+        fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channelCounter++, channel, getChannelState(channel) ? "OFF" : "ON");
     }
 }
 
@@ -241,21 +241,21 @@ Troubleshooting:
 
 Options:
     Channel selection:
-     --channel1,    -1[=edr]      Channel 1
-     --channel2,    -2[=edr]      Look, it's the same up until -8
+     --channel1,    -1  Channel 1
+     --channel2,    -2  Look, it's the same up until -8
      ...
-     --channel8,    -8[=edr]      I'm sure it's self-explanatory at this point
+     --channel8,    -8  I'm sure it's self-explanatory at this point
 
     Channel options:
-     --enable,      -e              Enable channel(s)
-     --disable,     -d              Disable channel(s)
-     --read,        -r              Read the channel state
+     --enable,      -e  Enable channel(s)
+     --disable,     -d  Disable channel(s)
+     --read,        -r  Read the channel state
 
     General options:
-     --list-all,    -L              List all channels and their current state
+     --list-all,    -L  List all channels and their current state
 
-     --help,        -h              Displays this text and exits
-     --version,     -v              Displays the version information and exits
+     --help,        -h  Displays this text and exits
+     --version,     -v  Displays the version information and exits
 )", APP_NAME, APP_VERS);
 
 }
@@ -265,13 +265,13 @@ void printVersion() {
 }
 
 void setChannel(const int32_t channel, const StateModifier newState) {
-    const auto gpioLineName = fmt::format("GPIO{0:d}", channel);
+    const auto gpioLineName = fmt::format("GPIO{0:d}", CHANNELS[channel]);
 
     auto gpioChip = gpiod::chip(string{GPIO_CHIP});
     auto lineSettings = gpiod::line_settings{};
     lineSettings.set_direction(gpiod::line::direction::OUTPUT);
     auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
 
-    fmt::println("Attempting to set GPIO{0:d} {1:s}", channel, newState == StateModifier::DISABLE ? "OFF" : "ON");
+    fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
     line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
 }
