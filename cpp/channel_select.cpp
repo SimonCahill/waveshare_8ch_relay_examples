@@ -147,6 +147,7 @@ int32_t parseArgs(int32_t argc, char** argv) {
         { "channel6",   no_argument,    nullptr,    '6' },
         { "channel7",   no_argument,    nullptr,    '7' },
         { "channel8",   no_argument,    nullptr,    '8' },
+        { "all",        no_argument,    nullptr,    'a' },
 
         // modifiers
         { "enable",     no_argument,    nullptr,    'e' },
@@ -156,7 +157,7 @@ int32_t parseArgs(int32_t argc, char** argv) {
         // other operations
         { "list-all",   no_argument,    nullptr,    'L' }
     };
-    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrL)";
+    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrLa)";
 
     int32_t optChar = -1;
 
@@ -183,6 +184,11 @@ int32_t parseArgs(int32_t argc, char** argv) {
                     break;
                 case 'L':
                     g_readAll = true;
+                    break;
+                case 'a':
+                    for (int32_t i = 0; i < 8; i++) {
+                        g_channelOptions.try_emplace(i, std::nullopt);
+                    }
                     break;
             }
         }
@@ -232,7 +238,7 @@ void printHelp() {
 Usage:
     {0:s} -h
     {0:s} -e -123       # enable channels 1, 2, and 3
-    {0:s} -d -528 -7=r  # disable channels 5, 2, and 8 and read the state of channel 7
+    {0:s} -d -528       # disable channels 5, 2, and 8 and read the state of channel 7
     {0:s} -L            # read the states of all channels
 
 Troubleshooting:
@@ -245,6 +251,7 @@ Options:
      --channel2,    -2  Look, it's the same up until -8
      ...
      --channel8,    -8  I'm sure it's self-explanatory at this point
+     --all,         -a  All channels
 
     Channel options:
      --enable,      -e  Enable channel(s)
