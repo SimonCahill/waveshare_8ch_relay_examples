@@ -84,9 +84,9 @@ using optsm_t = optional<StateModifier>;
 optsm_t     stateModifierFromString(const string& optArg); //!< Converts an optarg value to a boolean
 int32_t     parseArgs(int32_t argc, char** argv); //!< Parses arguments passed to the application
 
-bool        getChannelState(const int32_t channelId); //!< Gets the state of a given channel
+bool        getChannelState(const int32_t channelId, const string& gpioDevice = GPIO_CHIP); //!< Gets the state of a given channel
 void        listChannels(); //!< Lists all channels available with their state.
-void        setChannel(const int32_t channelId, const StateModifier newState); //!< Sets the state of a given channel
+void        setChannel(const int32_t channelId, const StateModifier newState, const string& gpioDevice = GPIO_CHIP); //!< Sets the state of a given channel
 
 void        printHelp(); //!< Prints the help text for the application
 void        printVersion(); //!< Prints the version information for the application
@@ -197,10 +197,14 @@ int32_t parseArgs(int32_t argc, char** argv) {
     return 0;
 }
 
-bool getChannelState(const int32_t channel) {
-    auto gpioChip = gpiod::chip(string{GPIO_CHIP});
-    auto lineSettings = gpiod::line_settings{};
-    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
+bool getChannelState(const int32_t channel, const string& gpioDevice/* = GPIO_CHIP*/) {
+    try {
+        auto gpioChip = gpiod::chip(string{gpioDevice});
+        auto lineSettings = gpiod::line_settings{};
+        auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
+    } catch (const std::invalid_argument&) {
+        return getChannelState(channel, FALLBACK_GPIO_CHIP);
+    }
 
     return static_cast<bool>(line.get_value(line.offsets()[0]));
 }
@@ -271,13 +275,18 @@ void printVersion() {
     fmt::print(R"({0:s} v{1:s} - A simple application for controlling GPIO pins on modern Linux OSs on RasPi)", APP_NAME, APP_VERS);
 }
 
-void setChannel(const int32_t channel, const StateModifier newState) {
+void setChannel(const int32_t channel, const StateModifier newState, const string& gpioDevice/* = GPIO_CHIP*/) {
     const auto gpioLineName = fmt::format("GPIO{0:d}", CHANNELS[channel]);
 
-    auto gpioChip = gpiod::chip(string{GPIO_CHIP});
-    auto lineSettings = gpiod::line_settings{};
-    lineSettings.set_direction(gpiod::line::direction::OUTPUT);
-    auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+    try {
+        auto gpioChip = gpiod::chip(string{gpioDevice});
+        auto lineSettings = gpiod::line_settings{};
+        lineSettings.set_direction(gpiod::line::direction::OUTPUT);
+        auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+    } catch (const std::invalid_argument&) {
+        setChannel(channel, newState, FALLBACK_GPIO_CHIP);
+        return;
+    }
 
     fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
     line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);

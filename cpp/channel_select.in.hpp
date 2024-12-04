@@ -14,6 +14,6 @@
 constexpr const char* APP_NAME = "@PROJECT_NAME@";
 constexpr const char* APP_VERS = "@PROJECT_VERSION@";
 
-constexpr const char* GPIO_CHIP = "/dev/gpiochip0"; //!< This is the chip required for controlling the relay board
-
+constexpr const char* GPIO_CHIP = "/dev/@DEFAULT_GPIOCHIP@"; //!< This is the chip required for controlling the relay board
+constexpr const char* FALLBACK_GPIO_CHIP = "/dev/@FALLBACK_GPIOCHIP@"; //!< This is the fallback chip required for controlling the relay board on a RaspberrFALLBACK
 #endif // CHANNEL_SELECT_HPP
