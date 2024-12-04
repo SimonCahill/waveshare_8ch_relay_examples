@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(waveshare_channel_select LANGUAGES CXX VERSION 1.1.0)
+project(waveshare_channel_select LANGUAGES CXX VERSION 1.2.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -13,6 +13,14 @@ else()
     add_compile_options(
         -O2
     )
+endif()
+
+if (DEFINED channelselect_RASPI5)
+    set(DEFAULT_GPIOCHIP "gpiochip4")
+    set(FALLBACK_GPIOCHIP "gpiochip0")
+    else()
+    set(DEFAULT_GPIOCHIP "gpiochip0")
+    set(FALLBACK_GPIOCHIP "gpiochip4")
 endif()
 
 add_compile_options(
@@ -43,4 +51,13 @@ target_link_libraries(
     gpiod::shared
     gpiodcxx::shared
     fmt
+)
+
+###
+# Define install target
+# This will install the executable to /usr/local/bin
+###
+install(
+    TARGETS channel_select
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
