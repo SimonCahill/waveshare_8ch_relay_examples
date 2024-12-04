@@ -198,15 +198,16 @@ int32_t parseArgs(int32_t argc, char** argv) {
 }
 
 bool getChannelState(const int32_t channel, const string& gpioDevice/* = GPIO_CHIP*/) {
+
     try {
         auto gpioChip = gpiod::chip(string{gpioDevice});
         auto lineSettings = gpiod::line_settings{};
         auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
+
+        return static_cast<bool>(line.get_value(line.offsets()[0]));
     } catch (const std::invalid_argument&) {
         return getChannelState(channel, FALLBACK_GPIO_CHIP);
     }
-
-    return static_cast<bool>(line.get_value(line.offsets()[0]));
 }
 
 optsm_t stateModifierFromString(const string& optArg) {
@@ -283,11 +284,11 @@ void setChannel(const int32_t channel, const StateModifier newState, const strin
         auto lineSettings = gpiod::line_settings{};
         lineSettings.set_direction(gpiod::line::direction::OUTPUT);
         auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+        
+        fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
+        line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
     } catch (const std::invalid_argument&) {
         setChannel(channel, newState, FALLBACK_GPIO_CHIP);
         return;
     }
-
-    fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
-    line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
 }
