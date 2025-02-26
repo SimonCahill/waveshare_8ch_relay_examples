@@ -30,6 +30,7 @@ add_compile_options(
 )
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/add_libgpiod.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/handle_dependencies.cmake)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/channel_select.in.hpp ${CMAKE_CURRENT_BINARY_DIR}/include/channel_select.hpp)
 
@@ -51,6 +52,7 @@ target_link_libraries(
     gpiod::shared
     gpiodcxx::shared
     fmt
+    nlohmann_json::nlohmann_json
 )
 
 ###

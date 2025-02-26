@@ -35,6 +35,9 @@
 #include <gpiod.h>
 #include <gpiod.hpp>
 
+// nlohmann/json
+#include <nlohmann/json.hpp>
+
 //////////////////////////////////
 //        Local  Includes       //
 //////////////////////////////////
@@ -56,8 +59,11 @@ using std::string_view;
 using std::tolower;
 using std::transform;
 
+using nlohmann::json;
+
 enum class StateModifier { ENABLE, DISABLE, READ };
 
+static bool                                     g_outputJson{false};
 static bool                                     g_readAll{false};
 static map<int32_t, optional<StateModifier>>    g_channelOptions{};
 static StateModifier                            g_stateModifier{StateModifier::READ};
@@ -115,7 +121,17 @@ int32_t main(int32_t argc, char** argv) {
                     break;
             }
         } else if (g_stateModifier == StateModifier::READ) {
-            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
+            if (!g_outputJson) {
+                fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
+            } else {
+                json channelState = {
+                    { "channel", channel + 1 },
+                    { "gpio_pin", CHANNELS[channel] },
+                    { "state", getChannelState(CHANNELS[channel]) }
+                };
+
+                fmt::print("{0:s}", channelState.dump(4));
+            }
             continue;
         } else {
             setChannel(channel, g_stateModifier);
@@ -155,9 +171,12 @@ int32_t parseArgs(int32_t argc, char** argv) {
         { "read-state", no_argument,    nullptr,    'r' },
 
         // other operations
-        { "list-all",   no_argument,    nullptr,    'L' }
+        { "list-all",   no_argument,    nullptr,    'L' },
+        { "json-out",   no_argument,    nullptr,    'j' },
+
+        { nullptr,      0,              nullptr,    0 }
     };
-    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrLa)";
+    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrLaj)";
 
     int32_t optChar = -1;
 
@@ -189,6 +208,9 @@ int32_t parseArgs(int32_t argc, char** argv) {
                     for (int32_t i = 0; i < 8; i++) {
                         g_channelOptions.try_emplace(i, std::nullopt);
                     }
+                    break;
+                case 'j':
+                    g_outputJson = true;
                     break;
             }
         }
@@ -231,8 +253,22 @@ optsm_t stateModifierFromString(const string& optArg) {
 void listChannels() {
     size_t channelCounter = 1;
 
-    for (const auto channel : CHANNELS) {
-        fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channelCounter++, channel, getChannelState(channel) ? "OFF" : "ON");
+    if (!g_outputJson) {
+        for (const auto channel : CHANNELS) {
+            fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channelCounter++, channel, getChannelState(channel) ? "OFF" : "ON");
+        }
+    } else {
+        json channelStates = json::array();
+
+        for (const auto channel : CHANNELS) {
+            channelStates.push_back({
+                { "channel", channelCounter },
+                { "gpio_pin", channel },
+                { "state", getChannelState(channel) }
+            });
+        }
+
+        fmt::print("{0:s}", channelStates.dump(4));
     }
 }
 
@@ -285,10 +321,21 @@ void setChannel(const int32_t channel, const StateModifier newState, const strin
         lineSettings.set_direction(gpiod::line::direction::OUTPUT);
         auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
         
-        fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
+        if (!g_outputJson) {
+            fmt::println("Attempting to set GPIO{0:d} {1:s}", CHANNELS[channel], newState == StateModifier::DISABLE ? "ON" : "OFF");
+        }
         line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
     } catch (const std::invalid_argument&) {
         setChannel(channel, newState, FALLBACK_GPIO_CHIP);
-        return;
+    }
+
+    if (g_outputJson) {
+        json channelState = {
+            { "channel", channel + 1 },
+            { "gpio_pin", CHANNELS[channel] },
+            { "state", getChannelState(CHANNELS[channel]) }
+        };
+
+        fmt::print("{0:s}", channelState.dump(4));
     }
 }
