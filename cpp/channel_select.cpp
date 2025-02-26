@@ -63,6 +63,7 @@ using nlohmann::json;
 
 enum class StateModifier { ENABLE, DISABLE, READ };
 
+static bool                                     g_invertState{false};
 static bool                                     g_outputJson{false};
 static bool                                     g_readAll{false};
 static map<int32_t, optional<StateModifier>>    g_channelOptions{};
@@ -173,10 +174,11 @@ int32_t parseArgs(int32_t argc, char** argv) {
         // other operations
         { "list-all",   no_argument,    nullptr,    'L' },
         { "json-out",   no_argument,    nullptr,    'j' },
+        { "invert",     no_argument,    nullptr,    'i' },
 
         { nullptr,      0,              nullptr,    0 }
     };
-    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrLaj)";
+    constexpr const char* APP_SHORTOPTS = R"(hv12345678edrLaji)";
 
     int32_t optChar = -1;
 
@@ -226,7 +228,9 @@ bool getChannelState(const int32_t channel, const string& gpioDevice/* = GPIO_CH
         auto lineSettings = gpiod::line_settings{};
         auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
 
-        return static_cast<bool>(line.get_value(line.offsets()[0]));
+        const auto state = static_cast<bool>(line.get_value(line.offsets()[0]));
+
+        g_invertState ? !state : state;
     } catch (const std::invalid_argument&) {
         return getChannelState(channel, FALLBACK_GPIO_CHIP);
     }
@@ -301,6 +305,8 @@ Options:
 
     General options:
      --list-all,    -L  List all channels and their current state
+     --json-out,    -j  Output the results in JSON format
+     --invert,      -i  Invert the state of the channel(s) (i.e. ON -> OFF, OFF -> ON)
 
      --help,        -h  Displays this text and exits
      --version,     -v  Displays the version information and exits
