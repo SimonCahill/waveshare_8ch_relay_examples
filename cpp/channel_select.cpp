@@ -141,7 +141,7 @@ int32_t main(int32_t argc, char** argv) {
             }
             continue;
         } else {
-            setChannel(channel, g_stateModifier);
+            setChannel(channel, g_stateModifier, &channelStates);
         }
     }
 
