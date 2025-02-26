@@ -93,7 +93,7 @@ int32_t     parseArgs(int32_t argc, char** argv); //!< Parses arguments passed t
 
 bool        getChannelState(const int32_t channelId, const string& gpioDevice = GPIO_CHIP); //!< Gets the state of a given channel
 void        listChannels(); //!< Lists all channels available with their state.
-void        setChannel(const int32_t channelId, const StateModifier newState, const string& gpioDevice = GPIO_CHIP); //!< Sets the state of a given channel
+void        setChannel(const int32_t channelId, const StateModifier newState, json *const channelStateList = nullptr, const string& gpioDevice = GPIO_CHIP); //!< Sets the state of a given channel
 
 void        printHelp(); //!< Prints the help text for the application
 void        printVersion(); //!< Prints the version information for the application
@@ -108,36 +108,44 @@ int32_t main(int32_t argc, char** argv) {
         return 0;
     }
 
+    json channelStates = json::array();
+
     for (const auto& [channel, state] : g_channelOptions) {
         if (state) {
             switch (*state) {
                 case StateModifier::DISABLE:
-                    setChannel(channel, *state);
-                    break;
                 case StateModifier::ENABLE:
-                    setChannel(channel, *state);
+                    setChannel(channel, *state, &channelStates);
                     break;
                 default:
-                    fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
+                    if (!g_outputJson) {
+                        fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
+                    } else {
+                        channelStates.push_back({
+                            { "channel", channel + 1 },
+                            { "gpio_pin", CHANNELS[channel] },
+                            { "state", getChannelState(CHANNELS[channel]) }
+                        });
+                    }
                     break;
             }
         } else if (g_stateModifier == StateModifier::READ) {
             if (!g_outputJson) {
                 fmt::println("Channel {0:d} (GPIO pin {1:d}) set to {2:s}", channel + 1, CHANNELS[channel], getChannelState(CHANNELS[channel]) ? "OFF" : "ON");
             } else {
-                json channelState = {
+                channelStates.push_back({
                     { "channel", channel + 1 },
                     { "gpio_pin", CHANNELS[channel] },
                     { "state", getChannelState(CHANNELS[channel]) }
-                };
-
-                fmt::print("{0:s}", channelState.dump(4));
+                });
             }
             continue;
         } else {
             setChannel(channel, g_stateModifier);
         }
     }
+
+    fmt::print("{0:s}", channelStates.dump(4));
 
     return 0;
 }
@@ -318,7 +326,7 @@ void printVersion() {
     fmt::print(R"({0:s} v{1:s} - A simple application for controlling GPIO pins on modern Linux OSs on RasPi)", APP_NAME, APP_VERS);
 }
 
-void setChannel(const int32_t channel, const StateModifier newState, const string& gpioDevice/* = GPIO_CHIP*/) {
+void setChannel(const int32_t channel, const StateModifier newState, json *const channelStateList /* = nullptr */, const string& gpioDevice/* = GPIO_CHIP*/) {
     const auto gpioLineName = fmt::format("GPIO{0:d}", CHANNELS[channel]);
 
     try {
@@ -332,10 +340,10 @@ void setChannel(const int32_t channel, const StateModifier newState, const strin
         }
         line.set_value(line.offsets()[0], newState == StateModifier::DISABLE ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
     } catch (const std::invalid_argument&) {
-        setChannel(channel, newState, FALLBACK_GPIO_CHIP);
+        setChannel(channel, newState, channelStateList, FALLBACK_GPIO_CHIP);
     }
 
-    if (g_outputJson) {
+    if (g_outputJson && channelStateList == nullptr) {
         json channelState = {
             { "channel", channel + 1 },
             { "gpio_pin", CHANNELS[channel] },
@@ -343,5 +351,11 @@ void setChannel(const int32_t channel, const StateModifier newState, const strin
         };
 
         fmt::print("{0:s}", channelState.dump(4));
+    } else if (g_outputJson && channelStateList != nullptr) {
+        channelStateList->push_back({
+            { "channel", channel + 1 },
+            { "gpio_pin", CHANNELS[channel] },
+            { "state", getChannelState(CHANNELS[channel]) }
+        });
     }
 }
