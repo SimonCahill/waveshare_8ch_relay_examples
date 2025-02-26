@@ -230,7 +230,7 @@ bool getChannelState(const int32_t channel, const string& gpioDevice/* = GPIO_CH
 
         const auto state = static_cast<bool>(line.get_value(line.offsets()[0]));
 
-        g_invertState ? !state : state;
+        return g_invertState ? !state : state;
     } catch (const std::invalid_argument&) {
         return getChannelState(channel, FALLBACK_GPIO_CHIP);
     }
