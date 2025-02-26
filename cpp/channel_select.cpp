@@ -266,7 +266,7 @@ void listChannels() {
 
         for (const auto channel : CHANNELS) {
             channelStates.push_back({
-                { "channel", channelCounter },
+                { "channel", channelCounter++ },
                 { "gpio_pin", channel },
                 { "state", getChannelState(channel) }
             });
