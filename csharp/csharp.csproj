@@ -1,0 +1,93 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>waveshare8ch</AssemblyName>
+    <RootNamespace>ChannelSelect</RootNamespace>
+    <Company>Procyon Systems</Company>
+    <Product>Launch Control</Product>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+
+    <!-- NuGet Configuration -->
+    <Description >
+    This project is a wrapper around my C++ library for the Waveshare 8 channel relay board.
+    It is designed to be used with a Raspberry Pi.
+
+    The dotnet library is written in C# and uses the C++ library in the backend to provide a simple interface for controlling the relay board.
+    The C++ library is built as a PreBuildTask using CMake and is included in the output directory. It is not necessary to install the C++ library separately.
+    </Description>
+
+    <Authors>Procyon Systems (s.cahill@procyon-systems.de)</Authors>
+    <PackageId>procsys.waveshare8ch</PackageId>
+    <Copyright >Copyright (c) 2025 Procyon Systems</Copyright>
+    <PublisherName>Procyon Systems / Simon Cahill</PublisherName>
+    <PackageTags>Raspberry Pi, Waveshare, Relay, GPIO</PackageTags>
+    <PackageVersion>0.1.0</PackageVersion>
+    <SupportUrl>https://docs.simonc.eu/docs/waveshare8ch_dotnet</SupportUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType >git</RepositoryType>
+    <Title>Waveshare 8 Channel Relay Control</Title>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageIcon>lib_logo.png</PackageIcon>
+
+    <PackageReleaseNotes>Initial release of the library.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <!-- Always output to the build/ directory in the project root, regardless of configuration -->
+  <PropertyGroup>
+    <OutputPath>build\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <AppendConfigurationToOutputPath>false</AppendConfigurationToOutputPath>
+    <AppendAssemblyVersionToOutputPath>false</AppendAssemblyVersionToOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>build\</OutputPath>
+    <DocumentationFile>build\csharp.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>build\</OutputPath>
+    <DocumentationFile>build\csharp.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <!-- 
+    This project relies on the wavechannelselect library, located in the ../cpp directory, which is built using CMake.
+    The library needs to be built and then included via copy in the output directory.
+
+    To do this, we use the PostBuild target to run the CMake build command and then copy the output to the output directory.
+    Build args: -Dchannelselect_BUILD_LIBRARY=ON
+
+    If the user has passed an argument specifiying the RaspberryPi 5, we will also pass this to CMake: -Dchannelselect_RASPBERRYPI5=ON
+    Passing this argument will simplify calls in the library, resulting in negligible performance improvements.
+  -->
+  <ItemDefinitionGroup>
+    <PreBuildEvent>
+      <Command>cmake --build -S ../cpp -B../cpp/build -Dchannelselect_BUILD_LIBRARY=ON</Command>
+      <Command>cp -Rfv ../cpp/build/*.so* $(OutputPath)</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <Target Name="PostBuild" AfterTargets="PreBuildEvent">
+    <Exec Command="cmake -S../cpp -Bbuild/cpp/ -Dchannelselect_BUILD_LIBRARY=ON&#xA;make -C build/cpp &amp;&amp; cp -fv build/cpp/lib/*.so* build/" />
+  </Target>
+
+  <ItemGroup >
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>  
+    <None Include="..\lib_logo.png">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

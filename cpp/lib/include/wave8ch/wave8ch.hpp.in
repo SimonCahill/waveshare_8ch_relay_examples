@@ -1,0 +1,100 @@
+/**
+ * @file wave8ch.hpp
+ * @author Simon Cahill (s.cahill@procyon-systems.de)
+ * @brief Contains the declarations for the wave8ch library.
+ * @version 0.1
+ * @date 2025-02-26
+ * 
+ * @copyright Copyright (c) 2025 Procyon Systems
+ */
+
+#ifndef WAVE8CHANNELSELECT_INCLUDE_WAVE8CH_WAVE8CH_HPP
+#define WAVE8CHANNELSELECT_INCLUDE_WAVE8CH_WAVE8CH_HPP
+
+//////////////////////////////////
+//        System Includes       //
+//////////////////////////////////
+// stl
+#include <array>
+#include <cstdint>
+#include <unordered_map>
+#include <string>
+#include <vector>
+
+// fmt
+#include <fmt/format.h>
+
+// gpiod
+#include <gpiod.h>
+#include <gpiod.hpp>
+
+namespace waveshare::relay_board_8ch {
+
+    using std::array;
+    using std::unordered_map;
+    using std::vector;
+
+    constexpr const char* GPIO_CHIP = "/dev/@DEFAULT_GPIOCHIP@"; //!< This is the chip required for controlling the relay board on a Raspberry Pi
+    constexpr const char* FALLBACK_GPIO_CHIP = "/dev/@FALLBACK_GPIOCHIP@"; //!< This is the fallback chip required for controlling the relay board on a Raspberry Pi
+
+    /**
+     * @brief A simple array representing a map to the channels on the relay board, corresponding to
+     * the GPIO pins.
+     * 
+     * E.g.: CHANNELS[0] = channel 1 = GPIO5
+     */
+    static constexpr array<uint32_t, 8> GPIO_PINS {
+        5, 6, 13, 16, 19, 20, 21, 26
+    };
+
+    /**
+     * @brief An enumeration representing the channels on the relay board.
+     */
+    enum class Channel { INVALID = 0, CHANNEL_1 = 1, CHANNEL_2 = 2, CHANNEL_3 = 3, CHANNEL_4 = 4, CHANNEL_5 = 5, CHANNEL_6 = 6, CHANNEL_7 = 7, CHANNEL_8 = 8 };
+
+    /**
+     * @brief Gets a map of all the channels and their current state.
+     * 
+     * @return unordered_map<Channel, bool> A map of the channels and their states.
+     */
+    unordered_map<Channel, bool> getChannelStates();
+
+    /**
+     * @brief Gets the state of a specific channel.
+     * 
+     * @param channel The channel to get the state of.
+     * 
+     * @return bool The state of the channel.
+     */
+    bool getChannelState(Channel channel);
+
+    /**
+     * @brief Sets the state of a specific channel.
+     * 
+     * @param channel The channel to set the state of.
+     * @param newState The new state of the channel.
+     */
+    void setChannelState(Channel channel, bool newState);
+
+}
+
+extern "C" {
+    /**
+     * @brief Gets the state of a specific channel.
+     * 
+     * @param channel The channel to get the state of.
+     * 
+     * @return bool The state of the channel.
+     */
+    bool getChannelState(int32_t channel);
+
+    /**
+     * @brief Sets the state of a specific channel.
+     * 
+     * @param channel The channel to set the state of.
+     * @param newState The new state of the channel.
+     */
+    void setChannelState(int32_t channel, bool newState);
+}
+
+#endif // WAVE8CHANNELSELECT_INCLUDE_WAVE8CH_WAVE8CH_HPP

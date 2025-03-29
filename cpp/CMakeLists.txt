@@ -27,6 +27,7 @@ add_compile_options(
     -Werror
     -Wall
     -Wpedantic
+    -fPIC
 )
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/add_libgpiod.cmake)
@@ -63,3 +64,25 @@ install(
     TARGETS channel_select
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+
+###
+# With this block, we can include the library in other projects
+# By defining channelselect_BUILD_LIBRARY, cmake will generate a new target
+# that can be linked to other projects.
+#
+# If channelselect_BUILD_LIBRARY is defined as a value other than STATIC, a shared
+# library will be generated.
+# Otherwise, a static library will be generated.
+#
+# The library will be installed to /usr/local/lib.
+# The headers will be installed to /usr/local/include.
+# The library will be named libchannelselect.
+# Regardless of the type of library, a preprocessor definition will be added to the
+# target that will be named channelselect_EXPORT_LIB. This will modify the code, so that
+# fields and functions not required by a library are not compiled, and thus not included in the
+# final binary.
+###
+if (DEFINED channelselect_BUILD_LIBRARY)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+endif()

@@ -70,20 +70,6 @@ static map<int32_t, optional<StateModifier>>    g_channelOptions{};
 static StateModifier                            g_stateModifier{StateModifier::READ};
 
 //////////////////////////////////
-//       STATIC CONSTEXPR       //
-//////////////////////////////////
-
-/**
- * @brief A simple array representing a map to the channels on the relay board, corresponding to
- * the GPIO pins.
- * 
- * E.g.: CHANNELS[0] = channel 1 = GPIO5
- */
-static constexpr array<uint32_t, 8> CHANNELS {
-    5, 6, 13, 16, 19, 20, 21, 26
-};
-
-//////////////////////////////////
 //     FUNCTION PROTOTYPES      //
 //////////////////////////////////
 using optsm_t = optional<StateModifier>;
