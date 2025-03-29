@@ -102,3 +102,23 @@ namespace waveshare::relay_board_8ch {
     void setChannelState(Channel channel, bool newState) { setChannel(GPIO_PINS[static_cast<int32_t>(channel) - 1], newState); }
 
 } // namespace waveshare::relay_board_8ch
+
+
+extern "C" {
+    /**
+     * @brief Gets the state of a specific channel.
+     * 
+     * @param channel The channel to get the state of.
+     * 
+     * @return bool The state of the channel.
+     */
+    bool getChannelState(int32_t channel) { return waveshare::relay_board_8ch::getChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel)); }
+
+    /**
+     * @brief Sets the state of a specific channel.
+     * 
+     * @param channel The channel to set the state of.
+     * @param newState The new state of the channel.
+     */
+    void setChannelState(int32_t channel, bool newState) { return waveshare::relay_board_8ch::setChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel), newState); }
+}

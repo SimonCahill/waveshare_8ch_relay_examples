@@ -78,4 +78,23 @@ namespace waveshare::relay_board_8ch {
 
 }
 
+extern "C" {
+    /**
+     * @brief Gets the state of a specific channel.
+     * 
+     * @param channel The channel to get the state of.
+     * 
+     * @return bool The state of the channel.
+     */
+    bool getChannelState(int32_t channel);
+
+    /**
+     * @brief Sets the state of a specific channel.
+     * 
+     * @param channel The channel to set the state of.
+     * @param newState The new state of the channel.
+     */
+    void setChannelState(int32_t channel, bool newState);
+}
+
 #endif // WAVE8CHANNELSELECT_INCLUDE_WAVE8CH_WAVE8CH_HPP
