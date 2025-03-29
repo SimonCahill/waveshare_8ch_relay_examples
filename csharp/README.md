@@ -18,7 +18,7 @@ This repository contains example code for controlling the Waveshare 8-Channel Re
 
 - A Waveshare 8-Channel Relay module.
 - A device with GPIO support (e.g., Raspberry Pi).
-- .NET 6.0 or later installed on your system.
+- .NET 8.0 or later installed on your system.
 
 ## Getting Started
 
