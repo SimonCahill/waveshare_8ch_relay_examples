@@ -6,7 +6,7 @@ ExternalProject_Add(
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libgpiod
     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libgpiod/autogen.sh --enable-bindings-cxx --prefix ${CMAKE_CURRENT_BINARY_DIR}/libgpiod/
 
-    UPDATE_COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libgpiod && autoupdate
+    UPDATE_COMMAND #cd ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libgpiod && autoupdate
 
     # BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/libgpiod
     BUILD_COMMAND make
