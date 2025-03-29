@@ -72,10 +72,10 @@ namespace ChannelSelect {
     public static class ChannelSelect {
 
         #region DllImports
-        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool getChannelState(int channel);
 
-        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.Cdecl)]
         private static extern void setChannelState(int channel, bool state);
         #endregion
 
