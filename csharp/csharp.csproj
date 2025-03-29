@@ -27,6 +27,7 @@
     <PackageVersion>0.1.0</PackageVersion>
     <SupportUrl>https://docs.simonc.eu/docs/waveshare8ch_dotnet</SupportUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType >git</RepositoryType>
     <Title>Waveshare 8 Channel Relay Control</Title>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
