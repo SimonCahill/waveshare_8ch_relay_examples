@@ -101,24 +101,46 @@ namespace waveshare::relay_board_8ch {
      */
     void setChannelState(Channel channel, bool newState) { setChannel(GPIO_PINS[static_cast<int32_t>(channel) - 1], newState); }
 
+    static string g_lastErrorForCFunc{};
+
 } // namespace waveshare::relay_board_8ch
 
 
 extern "C" {
+
+    const char* const getLastError() { return waveshare::relay_board_8ch::g_lastErrorForCFunc.c_str(); }
+
     /**
      * @brief Gets the state of a specific channel.
      * 
      * @param channel The channel to get the state of.
      * 
-     * @return bool The state of the channel.
+     * @return int -1 if an error occurred, 0 if the channel is off, 1 if the channel is on.
      */
-    bool getChannelState(int32_t channel) { return waveshare::relay_board_8ch::getChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel)); }
+    int getChannelState(int32_t channel) {
+        try {
+            return waveshare::relay_board_8ch::getChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel));
+        } catch (const std::exception& ex) {
+            waveshare::relay_board_8ch::g_lastErrorForCFunc = fmt::format("Error getting channel state: {0}", ex.what());
+            return -1;
+        }
+    }
 
     /**
      * @brief Sets the state of a specific channel.
      * 
      * @param channel The channel to set the state of.
      * @param newState The new state of the channel.
+     * 
+     * @return int -1 if an error occurred or 0 if the channel was set successfully.
      */
-    void setChannelState(int32_t channel, bool newState) { return waveshare::relay_board_8ch::setChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel), newState); }
+    int setChannelState(int32_t channel, bool newState) {
+        try {
+            waveshare::relay_board_8ch::setChannelState(static_cast<waveshare::relay_board_8ch::Channel>(channel), newState);
+            return 0;
+        } catch (const std::exception& ex) {
+            waveshare::relay_board_8ch::g_lastErrorForCFunc = fmt::format("Error setting channel state: {0}", ex.what());
+            return -1;
+        }
+    }
 }
