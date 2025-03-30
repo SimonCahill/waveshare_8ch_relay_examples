@@ -24,7 +24,7 @@
     <Copyright >Copyright (c) 2025 Procyon Systems</Copyright>
     <PublisherName>Procyon Systems / Simon Cahill</PublisherName>
     <PackageTags>Raspberry Pi, Waveshare, Relay, GPIO</PackageTags>
-    <PackageVersion>0.1.0</PackageVersion>
+    <PackageVersion>0.1.1</PackageVersion>
     <SupportUrl>https://docs.simonc.eu/docs/waveshare8ch_dotnet</SupportUrl>
     <RepositoryUrl>https://github.com/SimonCahill/waveshare_8ch_relay_examples</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
