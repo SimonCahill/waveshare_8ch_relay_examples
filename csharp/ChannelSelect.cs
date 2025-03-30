@@ -69,15 +69,32 @@ namespace ChannelSelect {
     /// It is located in the cpp directory of this repository and is built using the CMake build system.
     /// When this project is built, it will automatically configure and compile the wave8channelselect library, before importing it into the C# project.
     /// </remarks>
-    public static class ChannelSelect {
+    public static partial class ChannelSelect {
 
         #region DllImports
-        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool getChannelState(int channel);
+        [LibraryImport("libwave8channelselect.so")]
+        [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static partial int getChannelState(int channel);
 
-        [DllImport("libwave8channelselect.so", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void setChannelState(int channel, bool state);
+        [LibraryImport("libwave8channelselect.so")]
+        [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static partial int setChannelState(int channel, [MarshalAs(UnmanagedType.Bool)] bool state);
+
+        [LibraryImport("libwave8channelselect.so")]
+        [UnmanagedCallConv(CallConvs = new Type[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
+        private static partial IntPtr getLastError();
         #endregion
+
+        /// <summary>
+        /// Gets the last error message from the C++ library.
+        /// </summary>
+        /// <returns></returns>
+        public static string? GetChannelStateError() {
+            IntPtr errorPtr = getLastError();
+            if (errorPtr == IntPtr.Zero) { return null; }
+            
+            return Marshal.PtrToStringAnsi(errorPtr);
+        }
 
         /// <summary>
         /// Gets the state of all relay channels.
@@ -98,10 +115,14 @@ namespace ChannelSelect {
         /// Gets the state of a specific relay channel.
         /// </summary>
         /// <param name="channel">The relay channel to get the state of.</param>
-        /// <returns>
-        /// True if the relay channel is on, false if it is off.
-        /// </returns>
-        public static bool GetChannelState(Channel channel) => getChannelState((int)channel);
+        public static bool GetChannelState(Channel channel) {
+            var result = getChannelState((int)channel);
+            if (result == -1) {
+                throw new InvalidOperationException($"Failed to get channel state: {GetChannelStateError()}");
+            }
+
+            return result == 1;
+        }
 
         /// <summary>
         /// Sets the state of a specific relay channel.
@@ -113,7 +134,12 @@ namespace ChannelSelect {
         /// If the state is true, the relay channel will be turned on.
         /// If the state is false, the relay channel will be turned off.
         /// </remarks>
-        public static void SetChannelState(Channel channel, bool state) => setChannelState((int)channel, state);
+        public static void SetChannelState(Channel channel, bool state) {
+            var result = setChannelState((int)channel, state);
+            if (result == -1) {
+                throw new InvalidOperationException($"Failed to get channel state: {GetChannelStateError()}");
+            }
+        }
 
     }
 
