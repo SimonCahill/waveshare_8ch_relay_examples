@@ -24,7 +24,7 @@
     <Copyright >Copyright (c) 2025 Procyon Systems</Copyright>
     <PublisherName>Procyon Systems / Simon Cahill</PublisherName>
     <PackageTags>Raspberry Pi, Waveshare, Relay, GPIO</PackageTags>
-    <PackageVersion>0.1.1</PackageVersion>
+    <PackageVersion>0.1.2</PackageVersion>
     <SupportUrl>https://docs.simonc.eu/docs/waveshare8ch_dotnet</SupportUrl>
     <RepositoryUrl>https://github.com/SimonCahill/waveshare_8ch_relay_examples</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -34,7 +34,12 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageIcon>lib_logo.png</PackageIcon>
 
-    <PackageReleaseNotes>Initial release of the library.</PackageReleaseNotes>
+    <PackageReleaseNotes>
+      [EXPERIMENTAL]
+      This is a wrapper around the C++ library for the Waveshare 8 channel relay board.
+
+      This release, v0.1.2 contains a build fix and now includes the C++ library in the output directory.
+    </PackageReleaseNotes>
   </PropertyGroup>
 
   <!-- Always output to the build/ directory in the project root, regardless of configuration -->
@@ -88,6 +93,10 @@
     <None Include="..\lib_logo.png">
         <Pack>True</Pack>
         <PackagePath>\</PackagePath>
+    </None>
+    <None Include="build\cpp\lib\libwave8channelselect.so" CopyToOutputDirectory="PreserveNewest">
+      <Pack>True</Pack>
+      <PackagePath>lib\net8.0\</PackagePath>
     </None>
   </ItemGroup>
 
