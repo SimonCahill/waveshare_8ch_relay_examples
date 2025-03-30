@@ -24,7 +24,7 @@ This repository contains example code for controlling the Waveshare 8-Channel Re
 
 1. Clone this repository:
     ```bash
-    git clone https://github.com/yourusername/waveshare_8ch_relay_examples.git
+    git clone https://github.com/simoncahill/waveshare_8ch_relay_examples.git
     cd waveshare_8ch_relay_examples/csharp
     ```
 
