@@ -49,22 +49,20 @@ namespace waveshare::relay_board_8ch {
             const auto state = static_cast<bool>(line.get_value(line.offsets()[0]));
     
             return state;
-        } catch (const std::invalid_argument&) {
+        } catch (const std::exception&) {
             return getChannelState(channel, FALLBACK_GPIO_CHIP);
         }
     }
 
-    static inline void setChannel(const int32_t channel, const bool newState, const fs::path& gpioDevice = GPIO_CHIP) {
-        const auto gpioLineName = fmt::format("GPIO{0:d}", GPIO_PINS[channel]);
-    
+    static inline void setChannel(const int32_t channel, const bool newState, const fs::path& gpioDevice = GPIO_CHIP) {    
         try {
             auto gpioChip = gpiod::chip(gpioDevice);
             auto lineSettings = gpiod::line_settings{};
             lineSettings.set_direction(gpiod::line::direction::OUTPUT);
-            auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(gpioLineName), lineSettings).do_request();
+            auto line = gpioChip.prepare_request().add_line_settings(gpioChip.get_line_offset_from_name(fmt::format("GPIO{0:d}", channel)), lineSettings).do_request();
             
             line.set_value(line.offsets()[0], newState == false ? gpiod::line::value::INACTIVE : gpiod::line::value::ACTIVE);
-        } catch (const std::invalid_argument&) {
+        } catch (const std::exception&) {
             setChannel(channel, newState, FALLBACK_GPIO_CHIP);
         }
     }
@@ -77,8 +75,8 @@ namespace waveshare::relay_board_8ch {
     unordered_map<Channel, bool> getChannelStates() {
         unordered_map<Channel, bool> channelStates{};
 
-        for (const auto channel : GPIO_PINS) {
-            channelStates[static_cast<Channel>(channel + 1)] = getChannelState(channel);
+        for (auto i = 0u; i < GPIO_PINS.size(); ++i) {
+            channelStates[static_cast<Channel>(i + 1)] = getChannelState(GPIO_PINS[i]);
         }
 
         return channelStates;
