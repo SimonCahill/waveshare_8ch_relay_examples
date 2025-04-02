@@ -24,7 +24,6 @@ endif()
     
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
@@ -37,7 +36,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE channelselect_EXPORT_LIB)
+target_compile_definitions(${PROJECT_NAME} PUBLIC channelselect_EXPORT_LIB)
 
 install(
     TARGETS ${PROJECT_NAME}
