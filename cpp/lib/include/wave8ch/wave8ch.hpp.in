@@ -79,22 +79,32 @@ namespace waveshare::relay_board_8ch {
 }
 
 extern "C" {
+
+    /**
+     * @brief If an error has previously occurred, this function will return the error message.
+     * 
+     * @return const char* const - The error message.
+     */
+    const char* const getLastError();
+
     /**
      * @brief Gets the state of a specific channel.
      * 
      * @param channel The channel to get the state of.
      * 
-     * @return bool The state of the channel.
+     * @return int -1 if an error occurred, 0 if the channel is off, 1 if the channel is on.
      */
-    bool getChannelState(int32_t channel);
+    int getChannelState(int32_t channel);
 
     /**
      * @brief Sets the state of a specific channel.
      * 
      * @param channel The channel to set the state of.
      * @param newState The new state of the channel.
+     * 
+     * @return int -1 if an error occurred or 0 if the channel was set successfully.
      */
-    void setChannelState(int32_t channel, bool newState);
+    int setChannelState(int32_t channel, bool newState);
 }
 
 #endif // WAVE8CHANNELSELECT_INCLUDE_WAVE8CH_WAVE8CH_HPP

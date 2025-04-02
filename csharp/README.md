@@ -22,17 +22,32 @@ This repository contains example code for controlling the Waveshare 8-Channel Re
 
 ## Getting Started
 
-1. Clone this repository:
+These steps must be performed on your raspberry Pi.
+
+1. Clone this repository: (optional)
     ```bash
     git clone https://github.com/simoncahill/waveshare_8ch_relay_examples.git
-    cd waveshare_8ch_relay_examples/csharp
+    cd waveshare_8ch_relay_examples/cpp
     ```
 
-2. Open the project in your favorite IDE (e.g., Visual Studio or Visual Studio Code).
+2. Ensure you have the tools required for building C++ libraries, or download a precompiled version from GitHub.
 
-3. Build the project:
+3. Compile the library for your Raspberry Pi model:
     ```bash
-    dotnet build
+    mkdir build && cd build
+    cmake .. -Dchannelselect_BUILD_LIBRARY=ON -Dchannelselect_RASPI5=ON
+    make
+    ```
+
+4. Install the library to your Raspberry Pi:
+    ```bash
+    sudo make install
+    # or extract the library and copy it to your binary's install location
+    ```
+
+5. Download the NuGet package
+    ```bash
+    dotnet add package procsys.waveshare8ch
     ```
 
 ## Basic Usage
@@ -45,17 +60,17 @@ The example code demonstrates how to initialize the relay module and control ind
 ### Example Code Snippet
 
 ```csharp
-var relayController = new RelayController();
-relayController.Initialize();
+using ChannelSelect;
 
-// Turn on relay 1
-relayController.TurnOnRelay(1);
+class Program {
 
-// Turn off relay 1
-relayController.TurnOffRelay(1);
+    static void Main() {
 
-// Turn on all relays
-relayController.TurnOnAllRelays();
+        Console.WriteLine($"Channel states: { ChannelSelect.GetChannelStates() }");
+
+    }
+
+}
 ```
 
 ## Tips
