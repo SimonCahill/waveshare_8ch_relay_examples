@@ -137,7 +137,7 @@ namespace ChannelSelect {
         public static void SetChannelState(Channel channel, bool state) {
             var result = setChannelState((int)channel, state);
             if (result == -1) {
-                throw new InvalidOperationException($"Failed to get channel state: {GetChannelStateError()}");
+                throw new InvalidOperationException($"Failed to set channel state: {GetChannelStateError()}");
             }
         }
 
