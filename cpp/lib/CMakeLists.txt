@@ -18,7 +18,12 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/wave8ch/wave8ch.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/wave8ch/wave8ch.hpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+if (NOT TARGET gpiod::shared OR NOT TARGET gpiodcxx::shared)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/add_libgpiod.cmake)
+endif()
+    
+
+target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
