@@ -82,5 +82,6 @@ install(
 # final binary.
 ###
 if (DEFINED channelselect_BUILD_LIBRARY)
+    message(STATUS "Building library with channelselect_BUILD_LIBRARY = ${channelselect_BUILD_LIBRARY}")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 endif()
