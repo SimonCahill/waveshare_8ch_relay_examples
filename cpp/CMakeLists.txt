@@ -35,8 +35,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/handle_dependencies.cmake)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/channel_select.in.hpp ${CMAKE_CURRENT_BINARY_DIR}/include/channel_select.hpp)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/fmt)
-
 add_executable(
     channel_select
 
