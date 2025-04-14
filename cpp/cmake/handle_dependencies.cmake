@@ -23,3 +23,9 @@ CPMAddPackage(
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG develop
 )
+
+CPMAddPackage(
+    NAME fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG master
+)

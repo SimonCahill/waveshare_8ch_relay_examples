@@ -18,7 +18,7 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/wave8ch/wave8ch.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/wave8ch/wave8ch.hpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
@@ -42,4 +42,17 @@ install(
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/include/channel_select.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+###
+# Define test app target (no unit tests)
+###
+add_executable(
+    ${PROJECT_NAME}_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/libtestmain.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_test
+    ${PROJECT_NAME}
 )
